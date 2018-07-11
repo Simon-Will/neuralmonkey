@@ -3,6 +3,7 @@ import re
 
 import tensorflow as tf
 
+from neuralmonkey.logging import log
 from neuralmonkey.model.model_part import ModelPart
 from neuralmonkey.runners.base_runner import (
     Executable, ExecutionResult, NextExecute)
@@ -46,7 +47,8 @@ class GenericTrainer(object):
                  clip_norm: float = None,
                  optimizer: tf.train.Optimizer = None,
                  var_scopes: List[str] = None,
-                 var_collection: str = None) -> None:
+                 var_collection: str = None,
+                 update_every: int = 1) -> None:
 
         if var_collection is None:
             var_collection = tf.GraphKeys.TRAINABLE_VARIABLES
@@ -132,6 +134,17 @@ class GenericTrainer(object):
 
                 self.all_coders = set.union(*(obj.decoder.get_dependencies()
                                               for obj in objectives))
+
+                # Make the update_every value a tensor.
+                update_every_tensor = tf.constant(update_every, dtype=tf.int64)
+
+                # Make gradients zero unless step is dividable by update_every.
+                gradients = [(tf.cond(tf.equal(step % update_every_tensor,
+                                               tf.constant(0, dtype=tf.int64)),
+                                      lambda: grad,
+                                      lambda: tf.zeros_like(grad)), var)
+                             for grad, var in gradients
+                             if grad is not None]
 
                 self.train_op = self.optimizer.apply_gradients(
                     gradients, global_step=step)
