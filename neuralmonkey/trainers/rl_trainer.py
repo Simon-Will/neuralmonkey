@@ -16,6 +16,25 @@ RewardFunction = Callable[[np.ndarray, np.ndarray], np.ndarray]
 # pylint: enable=invalid-name
 
 
+def get_sequence_level_reward(references, hypotheses):
+    rewards = [
+        float(hypothesis == reference)
+        for (reference, hypothesis) in zip(references, hypotheses)
+    ]
+    return rewards
+
+
+def get_token_level_reward(references, hypotheses):
+    rewards = []
+    for reference, hypothesis in zip(references, hypotheses):
+        reward = [
+            float(len(reference) > i and hypothesis[i] == reference[i])
+            for i in range(len(hypothesis))
+        ]
+        rewards.append(reward)
+    return rewards
+
+
 # pylint: disable=too-many-locals
 def rl_objective(decoder: Decoder,
                  reward_function: RewardFunction,
@@ -24,7 +43,8 @@ def rl_objective(decoder: Decoder,
                  temperature: float = 1.,
                  ce_smoothing: float = 0.,
                  alpha: float = 1.,
-                 sample_size: int = 1) -> Objective:
+                 sample_size: int = 1,
+                 token_level: bool = False) -> Objective:
     """Construct RL objective for training with sentence-level feedback.
 
     Depending on the options the objective corresponds to:
@@ -73,6 +93,8 @@ def rl_objective(decoder: Decoder,
         :return: an array of batch length with float rewards
         """
         rewards = []
+        ref_sentences = []
+        hyp_sentences = []
         for refs, hyps in zip(references.transpose(), hypotheses.transpose()):
             ref_seq = []
             hyp_seq = []
@@ -89,9 +111,27 @@ def rl_objective(decoder: Decoder,
             # join BPEs, split on " " to prepare list for evaluator
             refs_tokens = " ".join(ref_seq).replace("@@ ", "").split(" ")
             hyps_tokens = " ".join(hyp_seq).replace("@@ ", "").split(" ")
-            reward = float(reward_function([hyps_tokens], [refs_tokens]))
-            rewards.append(reward)
-        return np.array(rewards, dtype=np.float32)
+            ref_sentences.append(refs_tokens)
+            hyp_sentences.append(hyps_tokens)
+        rewards = reward_function(ref_sentences, hyp_sentences)
+        if token_level:
+            # Pad rewards so that pad_token and end_token have reward 0
+            max_len = max(ref_sentences, key=lambda r: r.shape[0])
+            mask = ???
+            rewards = np.stack([
+                np.pad(
+                    reward_v,
+                    (0, max_len - len(reward_v)),
+                    mode='constant',
+                    constant_values=(0, 0)
+                )
+                for reward_v in rewards
+            ])
+            # Transpose so that rewards have shape (time, batch)
+            rewards = rewards.transpose()
+        else:
+            mask = None
+        return np.array(rewards, dtype=np.float32), mask
 
     samples_rewards = []
     samples_logprobs = []
@@ -107,9 +147,9 @@ def rl_objective(decoder: Decoder,
 
         # rewards, shape (batch)
         # simulate from reference
-        sample_reward = tf.py_func(_score_with_reward_function,
-                                   [reference, sample_decoded],
-                                   tf.float32)
+        sample_reward, mask = tf.py_func(_score_with_reward_function,
+                                         [reference, sample_decoded],
+                                         tf.float32)
 
         # pylint: disable=invalid-unary-operand-type
         word_logprobs = -tf.nn.sparse_softmax_cross_entropy_with_logits(
