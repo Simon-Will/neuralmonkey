@@ -117,7 +117,7 @@ def rl_objective(decoder: Decoder,
         if token_level:
             # Pad rewards so that pad_token and end_token have reward 0
             max_len = max(ref_sentences, key=lambda r: r.shape[0])
-            mask = ???
+            mask = None
             rewards = np.stack([
                 np.pad(
                     reward_v,
@@ -131,7 +131,7 @@ def rl_objective(decoder: Decoder,
             rewards = rewards.transpose()
         else:
             mask = None
-        return np.array(rewards, dtype=np.float32), mask
+        return np.array(rewards, dtype=np.float32)
 
     samples_rewards = []
     samples_logprobs = []
@@ -147,9 +147,9 @@ def rl_objective(decoder: Decoder,
 
         # rewards, shape (batch)
         # simulate from reference
-        sample_reward, mask = tf.py_func(_score_with_reward_function,
-                                         [reference, sample_decoded],
-                                         tf.float32)
+        sample_reward = tf.py_func(_score_with_reward_function,
+                                   [reference, sample_decoded],
+                                   tf.float32)
 
         # pylint: disable=invalid-unary-operand-type
         word_logprobs = -tf.nn.sparse_softmax_cross_entropy_with_logits(
