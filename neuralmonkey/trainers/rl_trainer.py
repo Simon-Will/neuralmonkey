@@ -8,6 +8,7 @@ from typeguard import check_argument_types
 
 from neuralmonkey.trainers.generic_trainer import Objective
 from neuralmonkey.decoders.decoder import Decoder
+from neuralmonkey.logging import warn
 from neuralmonkey.vocabulary import END_TOKEN, PAD_TOKEN
 
 
@@ -33,6 +34,55 @@ def get_token_level_reward(references, hypotheses):
         ]
         rewards.append(reward)
     return rewards
+
+
+def get_logged_sequence_level_reward(references_file, rewards_file):
+    reward_dict = {}
+    with open(references_file) as ref_f, open(rewards_file) as rew_f:
+        for reference_line, reward_line in zip(ref_f, rew_f):
+            reward = float(reward_line.strip())
+            reference = tuple(reference_line.strip().split(' '))
+            reward_dict[reference] = reward
+
+    def _get_logged_sequence_level_reward(references, _):
+        rewards = []
+        for reference in references:
+            reference = tuple(reference)
+            if reference in reward_dict:
+                rewards.append(reward_dict[reference])
+            else:
+                warn('Reference {} not found. Using reward 0.0.'
+                     'Is it present in the references_file {}?'
+                     .format(reference, references_file))
+                rewards.append(0.0)
+        return rewards
+
+    return _get_logged_sequence_level_reward
+
+
+def get_logged_token_level_reward(references_file, rewards_file):
+    reward_dict = {}
+    with open(references_file) as ref_f, open(rewards_file) as rew_f:
+        for reference_line, reward_line in zip(ref_f, rew_f):
+            reward = [float(rew) for rew in reward_line.strip().split(' ')]
+            reference = tuple(reference_line.strip().split(' '))
+            reward_dict[reference] = reward
+
+    def _get_logged_token_level_reward(references, _):
+        rewards = []
+        for reference in references:
+            reference = tuple(reference)
+            if reference in reward_dict:
+                rewards.append(reward_dict[reference])
+            else:
+                reward = [0.0] * len(reference)
+                warn('Reference {} not found. Using reward {}.'
+                     'Is it present in the references_file {}?'
+                     .format(reference, reward, references_file))
+                rewards.append(reward)
+        return rewards
+
+    return _get_logged_token_level_reward
 
 
 # pylint: disable=too-many-locals
@@ -117,7 +167,10 @@ def rl_objective(decoder: Decoder,
         if token_level:
             # Pad rewards so that pad_token and end_token have reward 0
             max_len = max(ref_sentences, key=lambda r: r.shape[0])
-            mask = None
+            #mask = np.stack([
+            #    [1] * len(reward_v) + [0] * (max_len - len(reward_v))
+            #    for reward_v in rewards
+            #])
             rewards = np.stack([
                 np.pad(
                     reward_v,
@@ -129,8 +182,9 @@ def rl_objective(decoder: Decoder,
             ])
             # Transpose so that rewards have shape (time, batch)
             rewards = rewards.transpose()
-        else:
-            mask = None
+            # Put mask into same array as rewards.
+            # It will later be unpacked again.
+            #rewards = (rewards, mask)
         return np.array(rewards, dtype=np.float32)
 
     samples_rewards = []
@@ -145,22 +199,32 @@ def rl_objective(decoder: Decoder,
         sample_logits = sample_loop_result[0]
         sample_decoded = sample_loop_result[3]
 
-        # rewards, shape (batch)
+        # rewards, shape (batch) for sequence level rewards
+        # shape (time, batch) for token level rewards
         # simulate from reference
         sample_reward = tf.py_func(_score_with_reward_function,
                                    [reference, sample_decoded],
                                    tf.float32)
+        #if token_level:
+        #    sample_reward, sample_reward_mask = sample_reward
 
         # pylint: disable=invalid-unary-operand-type
+        # Negative because we are doing gradient descent.
         word_logprobs = -tf.nn.sparse_softmax_cross_entropy_with_logits(
             labels=sample_decoded, logits=sample_logits)
 
-        # sum word log prob to sentence log prob
-        # no masking here, since otherwise shorter sentences are preferred
-        sent_logprobs = tf.reduce_sum(word_logprobs, axis=0)
+        if token_level:
+            logprobs = word_logprobs
+        else:
+            # sum word log prob to sentence log prob
+            # no masking here, since otherwise shorter sentences are preferred
+            sent_logprobs = tf.reduce_sum(word_logprobs, axis=0)
+            logprobs = sent_logprobs
 
-        samples_rewards.append(sample_reward)   # sample_size x batch
-        samples_logprobs.append(sent_logprobs)  # sample_size x batch
+        # sample_size x batch or sample_size x time x batch
+        samples_rewards.append(sample_reward)
+        # sample_size x batch or sample_size x time x batch
+        samples_logprobs.append(logprobs)
 
     # stack samples, sample_size x batch
     samples_rewards_stacked = tf.stack(samples_rewards)
@@ -193,6 +257,10 @@ def rl_objective(decoder: Decoder,
 
     scored_probs = tf.stop_gradient(
         tf.negative(samples_rewards_stacked)) * samples_logprobs_stacked
+
+    if token_level:
+        # sum over time
+        scored_probs = tf.reduce_sum(scored_probs, axis=1)
 
     # sum over samples
     total_loss = tf.reduce_sum(scored_probs, axis=0)
