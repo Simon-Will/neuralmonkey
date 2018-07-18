@@ -256,7 +256,7 @@ def rl_objective(decoder: Decoder,
             samples_logprobs_stacked * alpha, dim=0)
 
     scored_probs = tf.stop_gradient(
-        samples_rewards_stacked) * samples_logprobs_stacked
+        tf.negative(samples_rewards_stacked)) * samples_logprobs_stacked
 
     if token_level:
         # sum over time
