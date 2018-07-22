@@ -8,7 +8,7 @@ from typeguard import check_argument_types
 
 from neuralmonkey.trainers.generic_trainer import Objective
 from neuralmonkey.decoders.decoder import Decoder
-from neuralmonkey.logging import warn
+from neuralmonkey.logging import debug, warn
 from neuralmonkey.vocabulary import END_TOKEN, PAD_TOKEN
 
 
@@ -164,6 +164,11 @@ def rl_objective(decoder: Decoder,
             ref_sentences.append(refs_tokens)
             hyp_sentences.append(hyps_tokens)
         rewards = reward_function(ref_sentences, hyp_sentences)
+        for i in range(2):
+            debug('Ref: {ref}\nHyp: {}\n Reward: {rew}'
+                  .format(ref=' '.join(ref_sentences[i]),
+                          hyp=' '.join(hyp_sentences[i]),
+                          rew=rewards[i]))
         if token_level:
             # Pad rewards so that pad_token and end_token have reward 0
             max_len = max(ref_sentences, key=lambda r: r.shape[0])
