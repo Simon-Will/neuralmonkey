@@ -165,7 +165,7 @@ def rl_objective(decoder: Decoder,
             hyp_sentences.append(hyps_tokens)
         rewards = reward_function(ref_sentences, hyp_sentences)
         for i in range(min(len(rewards), 2)):
-            debug('Ref: {ref}\nHyp: {}\n Reward: {rew}'
+            debug('Ref: {ref}\nHyp: {hyp}\n Reward: {rew}'
                   .format(ref=' '.join(ref_sentences[i]),
                           hyp=' '.join(hyp_sentences[i]),
                           rew=rewards[i]))
