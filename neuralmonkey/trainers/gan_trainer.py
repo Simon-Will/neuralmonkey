@@ -1,7 +1,7 @@
 """Training objectives for GAN reinforcement learning."""
 
-import traceback
 from typing import Callable
+import time
 
 import numpy as np
 import requests
