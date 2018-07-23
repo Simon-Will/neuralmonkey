@@ -35,7 +35,8 @@ def get_discriminator_reward(url='http://localhost/'):
             try:
                 response = requests.post(url, json=payload)
             except Exception as e:
-                warn('Caught {}: {}\nSleeping 1 s.'.format(type(e), e))
+                warn('Caught {}: {}\nSleeping {} s.'
+                     .format(type(e), e, sleep_time))
                 time.sleep(sleep_time)
                 sleep_time += 1
 
