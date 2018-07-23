@@ -10,7 +10,7 @@ from typeguard import check_argument_types
 
 from neuralmonkey.decoders.decoder import Decoder
 from neuralmonkey.encoders.recurrent import RecurrentEncoder
-from neuralmonkey.logging import debug, log
+from neuralmonkey.logging import debug, warn
 from neuralmonkey.model.sequence import Sequence
 from neuralmonkey.trainers.generic_trainer import Objective
 from neuralmonkey.vocabulary import END_TOKEN, PAD_TOKEN
