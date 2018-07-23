@@ -30,12 +30,14 @@ def get_discriminator_reward(url='http://localhost/'):
         debug('Sending payload {} to {}'.format(payload, url))
 
         response = None
+        sleep_time = 1
         while not response:
             try:
                 response = requests.post(url, json=payload)
             except Exception as e:
                 warn('Caught {}: {}\nSleeping 1 s.'.format(type(e), e))
-                time.sleep(1)
+                time.sleep(sleep_time)
+                sleep_time += 1
 
         received_data = np.array(response.json())
         debug('Received data {}'.format(received_data))
