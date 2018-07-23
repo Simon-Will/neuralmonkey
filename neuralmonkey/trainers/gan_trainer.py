@@ -82,7 +82,7 @@ def gan_objective(decoder: Decoder,
 
     if not isinstance(encoder.input_sequence, Sequence):
         raise TypeError("Expected Sequence type in encoder.input_sequence")
-    input_sentences = encoder.input_sequence.inputs.transpose()
+    input_sentences = encoder.input_sequence.inputs
     input_vocabulary = encoder.input_sequence.vocabulary
 
     def _score_with_reward_function(references: np.array,
@@ -92,14 +92,14 @@ def gan_objective(decoder: Decoder,
         Parts of the sentence after generated <pad> or </s> are ignored.
         BPE-postprocessing is also included.
 
-        :param references: array of indices of references, shape (time, batch)
+        :param references: array of indices of references, shape (batch, time)
         :param hypotheses: array of indices of hypotheses, shape (time, batch)
         :return: an array of batch length with float rewards
         """
         rewards = []
         ref_sentences = []
         hyp_sentences = []
-        for refs, hyps in zip(references.transpose(), hypotheses.transpose()):
+        for refs, hyps in zip(references, hypotheses.transpose()):
             ref_seq = []
             hyp_seq = []
             for r_token in refs:
