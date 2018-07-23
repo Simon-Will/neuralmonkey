@@ -97,33 +97,28 @@ def gan_objective(decoder: Decoder,
         :param hypotheses: array of indices of hypotheses, shape (time, batch)
         :return: an array of batch length with float rewards
         """
-        try:
-            rewards = []
-            ref_sentences = []
-            hyp_sentences = []
-            for refs, hyps in zip(references, hypotheses.transpose()):
-                ref_seq = []
-                hyp_seq = []
-                for r_token in refs:
-                    token = input_vocabulary.index_to_word[r_token]
-                    token = decoder.vocabulary.index_to_word[r_token]
-                    if token == END_TOKEN or token == PAD_TOKEN:
-                        break
-                    ref_seq.append(token)
-                for h_token in hyps:
-                    token = decoder.vocabulary.index_to_word[h_token]
-                    if token == END_TOKEN or token == PAD_TOKEN:
-                        break
-                    hyp_seq.append(token)
-                # join BPEs, split on " " to prepare list for evaluator
-                refs_tokens = " ".join(ref_seq).replace("@@ ", "").split(" ")
-                hyps_tokens = " ".join(hyp_seq).replace("@@ ", "").split(" ")
-                ref_sentences.append(refs_tokens)
-                hyp_sentences.append(hyps_tokens)
-            rewards = reward_function(ref_sentences, hyp_sentences)
-        except:
-            traceback.print_exc()
-            raise
+        rewards = []
+        ref_sentences = []
+        hyp_sentences = []
+        for refs, hyps in zip(references, hypotheses.transpose()):
+            ref_seq = []
+            hyp_seq = []
+            for r_token in refs:
+                token = input_vocabulary.index_to_word[r_token]
+                if token == END_TOKEN or token == PAD_TOKEN:
+                    break
+                ref_seq.append(token)
+            for h_token in hyps:
+                token = decoder.vocabulary.index_to_word[h_token]
+                if token == END_TOKEN or token == PAD_TOKEN:
+                    break
+                hyp_seq.append(token)
+            # join BPEs, split on " " to prepare list for evaluator
+            refs_tokens = " ".join(ref_seq).replace("@@ ", "").split(" ")
+            hyps_tokens = " ".join(hyp_seq).replace("@@ ", "").split(" ")
+            ref_sentences.append(refs_tokens)
+            hyp_sentences.append(hyps_tokens)
+        rewards = reward_function(ref_sentences, hyp_sentences)
         return np.array(rewards, dtype=np.float32)
 
     samples_rewards = []
