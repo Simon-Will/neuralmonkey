@@ -33,7 +33,7 @@ def get_token_level_reward(references, hypotheses):
             for i in range(len(hypothesis))
         ]
         rewards.append(reward)
-    return rewards
+    return np.array(rewards)
 
 
 def get_logged_sequence_level_reward(references_file, rewards_file):
@@ -181,7 +181,7 @@ def rl_objective(decoder: Decoder,
                     reward_v,
                     (0, max_len - len(reward_v)),
                     mode='constant',
-                    constant_values=(0, 0)
+                    constant_values=(0.0, 0.0)
                 )
                 for reward_v in rewards
             ])
