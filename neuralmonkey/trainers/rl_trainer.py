@@ -171,7 +171,7 @@ def rl_objective(decoder: Decoder,
                           rew=rewards[i]))
         if token_level:
             # Pad rewards so that pad_token and end_token have reward 0
-            max_len = max(ref_sentences, key=lambda r: r.shape[0])
+            max_len = max(np.array(ref_sentences), key=lambda r: r.shape[0])
             #mask = np.stack([
             #    [1] * len(reward_v) + [0] * (max_len - len(reward_v))
             #    for reward_v in rewards
