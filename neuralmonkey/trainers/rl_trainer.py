@@ -33,7 +33,7 @@ def get_token_level_reward(references, hypotheses):
             for i in range(len(hypothesis))
         ]
         rewards.append(reward)
-    return np.array(rewards)
+    return rewards
 
 
 def get_logged_sequence_level_reward(references_file, rewards_file):
@@ -171,7 +171,8 @@ def rl_objective(decoder: Decoder,
                           rew=rewards[i]))
         if token_level:
             # Pad rewards so that pad_token and end_token have reward 0
-            max_len = max(np.array(ref_sentences), key=lambda r: r.shape[0])
+            ref_sentences = np.array(ref_sentences)
+            max_len = max(ref_sentences, key=lambda r: r.shape[0])
             #mask = np.stack([
             #    [1] * len(reward_v) + [0] * (max_len - len(reward_v))
             #    for reward_v in rewards
