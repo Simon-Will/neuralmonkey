@@ -32,6 +32,9 @@ def get_token_level_reward(references, hypotheses):
             float(len(reference) > i and hypothesis[i] == reference[i])
             for i in range(len(hypothesis))
         ]
+        # For the end token, give 1.0 as reward if hypothesis and reference
+        # have equal length.
+        reward.append(float(len(reference) == len(hypothesis)))
         rewards.append(reward)
     return rewards
 
@@ -170,7 +173,7 @@ def rl_objective(decoder: Decoder,
                           hyp=' '.join(hyp_sentences[i]),
                           rew=rewards[i]))
         if token_level:
-            # Pad rewards so that pad_token and end_token have reward 0
+            # Pad rewards so that pad_token has reward 0
             max_len = max(map(len, hyp_sentences))
             #mask = np.stack([
             #    [1] * len(reward_v) + [0] * (max_len - len(reward_v))
