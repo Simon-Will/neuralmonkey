@@ -190,6 +190,11 @@ def rl_objective(decoder: Decoder,
             ])
             # Transpose so that rewards have shape (time, batch)
             rewards = rewards.transpose()
+            # Sanity check
+            if rewards.shape != hypotheses.shape:
+                warn('Rewards and hypotheses have different shapes: {} and {}\n'
+                     'Full rewards: {}\nFull hypotheses: {}'
+                     .format(rewards.shape, hypotheses.shape, rewards, hypotheses))
             # Put mask into same array as rewards.
             # It will later be unpacked again.
             #rewards = (rewards, mask)
