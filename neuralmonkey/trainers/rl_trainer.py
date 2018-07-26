@@ -34,7 +34,9 @@ def get_token_level_reward(references, hypotheses):
         ]
         # For the end token, give 1.0 as reward if hypothesis and reference
         # have equal length.
-        reward.append(float(len(reference) == len(hypothesis)))
+        # reward.append(float(len(reference) == len(hypothesis)))
+        # No, always give reward 0.0
+        reward.append(0.0)
         rewards.append(reward)
     return rewards
 
