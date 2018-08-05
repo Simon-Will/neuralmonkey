@@ -273,6 +273,9 @@ def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
     hypothesis = tf.Print(hypothesis, [hypothesis], "hypothesis", 10)
     rewards = tf.Print(rewards, [rewards], "rewards", 10)
 
+    log('hypothesis: {}\nlogits: {}\nmask: {}\nrewards'
+        .format(hypothesis.shape, decoder.train_logits,
+                decoder.train_mask, rewards))
     # The minus makes cancels the minus from the cross entropy
     # so the result is + log p(y_i)
     # shape: batch, time
