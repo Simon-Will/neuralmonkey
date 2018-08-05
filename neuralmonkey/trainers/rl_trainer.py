@@ -280,9 +280,9 @@ def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
     # so the result is + log p(y_i)
     # shape: batch, time
     word_logprobs = -tf.contrib.seq2seq.sequence_loss(
-        tf.transpose(decoder.train_logits, perm=[1, 0, 2]),
-        tf.transpose(hypothesis),
-        tf.transpose(decoder.train_mask),
+        decoder.train_logits,
+        hypothesis,
+        decoder.train_mask,
         average_across_timesteps=False,
         average_across_batch=False
     )
