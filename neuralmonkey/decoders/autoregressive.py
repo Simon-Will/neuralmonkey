@@ -484,16 +484,20 @@ class AutoregressiveDecoder(ModelPart):
             fd[self.train_mask] = weights
 
             if self.feedback:
-                rewards = list(dataset.get_series('reward'))
-                debug('Train inputs: {}; length: {}'
-                      .format(inputs, len(inputs)))
-                debug('Rewards: {}; length: {}'.format(rewards, len(rewards)))
-                if self.feedback == 'token_level':
-                    fd[self.train_rewards] = [
-                        [float(r) for r in token_rewards]
-                        for token_rewards in rewards
-                    ]
-                else:
-                    fd[self.train_rewards] = [float(r[0]) for r in rewards]
+                try:
+                    rewards = list(dataset.get_series('reward'))
+                    debug('Train inputs: {}; length: {}'
+                          .format(inputs, len(inputs)))
+                    debug('Rewards: {}; length: {}'
+                          .format(rewards, len(rewards)))
+                    if self.feedback == 'token_level':
+                        fd[self.train_rewards] = [
+                            [float(r) for r in token_rewards]
+                            for token_rewards in rewards
+                        ]
+                    else:
+                        fd[self.train_rewards] = [float(r[0]) for r in rewards]
+                except KeyError:
+                    log('KeyError when trying to get reward series')
 
         return fd
