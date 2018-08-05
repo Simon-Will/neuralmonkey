@@ -109,7 +109,8 @@ class AutoregressiveDecoder(ModelPart):
                  supress_unk: bool = False,
                  save_checkpoint: str = None,
                  load_checkpoint: str = None,
-                 initializers: InitializerSpecs = None) -> None:
+                 initializers: InitializerSpecs = None,
+                 feedback: str = None) -> None:
         """Initialize parameters common for all autoregressive decoders.
 
         Arguments:
@@ -145,6 +146,8 @@ class AutoregressiveDecoder(ModelPart):
         self.encoder_states = None
         self.encoder_mask = None
 
+        self.feedback = feedback
+
         # check the values of the parameters (max_output_len, ...)
         if max_output_len <= 0:
             raise ValueError("Maximum sequence length must be "
@@ -175,6 +178,13 @@ class AutoregressiveDecoder(ModelPart):
                 tf.int32, [None, None], "train_inputs")
             self.train_mask = tf.placeholder(
                 tf.float32, [None, None], "train_mask")
+            if self.feedback:
+                if self.feedback == 'token_level':
+                    self.train_rewards = tf.placeholder(
+                        tf.float32, [None, None], name="train_rewards")
+                else:
+                    self.train_rewards = tf.placeholder(
+                        tf.float32, [None], name="train_rewards")
     # pylint: enable=too-many-arguments
 
     @tensor
@@ -472,5 +482,17 @@ class AutoregressiveDecoder(ModelPart):
 
             fd[self.train_inputs] = inputs
             fd[self.train_mask] = weights
+
+            if self.feedback:
+                rewards = list(dataset.get_series('reward', allow_none=False))
+                log('Train inputs: {}; length: {}'.format(inputs, len(inputs)))
+                log('Rewards: {}; length: {}'.format(rewards, len(rewards)))
+                if self.feedback == 'token_level':
+                    fd[self.train_rewards] = [
+                        [float(r) for r in token_rewards]
+                        for token_rewards in rewards
+                    ]
+                else:
+                    fd[self.train_rewards] = [float(r[0]) for r in rewards]
 
         return fd

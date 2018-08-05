@@ -103,7 +103,8 @@ class Decoder(AutoregressiveDecoder):
                  supress_unk: bool = False,
                  save_checkpoint: str = None,
                  load_checkpoint: str = None,
-                 initializers: InitializerSpecs = None) -> None:
+                 initializers: InitializerSpecs = None,
+                 feedback: str = None) -> None:
         """Create a refactored version of monster decoder.
 
         Arguments:
@@ -149,7 +150,8 @@ class Decoder(AutoregressiveDecoder):
             supress_unk=supress_unk,
             save_checkpoint=save_checkpoint,
             load_checkpoint=load_checkpoint,
-            initializers=initializers)
+            initializers=initializers,
+            feedback=feedback)
 
         self.encoders = encoders
         self.output_projection_spec = output_projection

@@ -8,7 +8,7 @@ from typeguard import check_argument_types
 
 from neuralmonkey.trainers.generic_trainer import Objective
 from neuralmonkey.decoders.decoder import Decoder
-from neuralmonkey.logging import debug, warn
+from neuralmonkey.logging import debug, log, warn
 from neuralmonkey.vocabulary import END_TOKEN, PAD_TOKEN
 
 
@@ -34,55 +34,6 @@ def get_token_level_reward(references, hypotheses):
         ]
         rewards.append(reward)
     return rewards
-
-
-def get_logged_sequence_level_reward(references_file, rewards_file):
-    reward_dict = {}
-    with open(references_file) as ref_f, open(rewards_file) as rew_f:
-        for reference_line, reward_line in zip(ref_f, rew_f):
-            reward = float(reward_line.strip())
-            reference = tuple(reference_line.strip().split(' '))
-            reward_dict[reference] = reward
-
-    def _get_logged_sequence_level_reward(references, _):
-        rewards = []
-        for reference in references:
-            reference = tuple(reference)
-            if reference in reward_dict:
-                rewards.append(reward_dict[reference])
-            else:
-                warn('Reference {} not found. Using reward 0.0.'
-                     'Is it present in the references_file {}?'
-                     .format(reference, references_file))
-                rewards.append(0.0)
-        return rewards
-
-    return _get_logged_sequence_level_reward
-
-
-def get_logged_token_level_reward(references_file, rewards_file):
-    reward_dict = {}
-    with open(references_file) as ref_f, open(rewards_file) as rew_f:
-        for reference_line, reward_line in zip(ref_f, rew_f):
-            reward = [float(rew) for rew in reward_line.strip().split(' ')]
-            reference = tuple(reference_line.strip().split(' '))
-            reward_dict[reference] = reward
-
-    def _get_logged_token_level_reward(references, _):
-        rewards = []
-        for reference in references:
-            reference = tuple(reference)
-            if reference in reward_dict:
-                rewards.append(reward_dict[reference])
-            else:
-                reward = [0.0] * len(reference)
-                warn('Reference {} not found. Using reward {}.'
-                     'Is it present in the references_file {}?'
-                     .format(reference, reward, references_file))
-                rewards.append(reward)
-        return rewards
-
-    return _get_logged_token_level_reward
 
 
 # pylint: disable=too-many-locals
@@ -283,6 +234,66 @@ def rl_objective(decoder: Decoder,
 
     return Objective(
         name="{}_rl".format(decoder.name),
+        decoder=decoder,
+        loss=batch_loss,
+        gradients=None,
+        weight=None
+    )
+
+
+def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
+    """Deterministic Propensity Matching
+
+    See: http://www.aclweb.org/anthology/D/D17/D17-1272.pdf
+
+    """
+    check_argument_types()
+
+    if decoder.feedback:
+        log('DPM training with {}; reweighing: {}'
+            .format(decoder.feedback, reweighing))
+    else:
+        msg = 'Decoder does not accept feedback'
+        warn(msg)
+        raise ValueError(msg)
+
+    # Logged translation and corresponding logged rewards
+    hypothesis = decoder.train_inputs  # time, batch
+    rewards = decoder.train_rewards  # batch, time
+    hypothesis = tf.Print(hypothesis, [hypothesis], "hypothesis", 10)
+    rewards = tf.Print(rewards, [rewards], "rewards", 10)
+
+    # The minus makes cancels the minus from the cross entropy
+    # so the result is + log p(y_i)
+    # shape: batch, time
+    word_logprobs = -tf.nn.sparse_softmax_cross_entropy_with_logits(
+        labels=tf.transpose(hypothesis),
+        logits=tf.transpose(decoder.train_logits, perm=[1, 0, 2])
+    )
+    word_logprobs = tf.Print(word_logprobs, [word_logprobs], "word_logprobs", 10)
+    sent_logprobs = tf.reduce_sum(word_logprobs, axis=0)
+    sent_logprobs = tf.Print(sent_logprobs, [sent_logprobs], "sent_logprobs", 10)
+
+    if decoder.feedback == 'token_level':
+        # Negative rewards to make it a loss for using with gradient descent
+        loss = tf.stop_gradient(tf.negative(rewards)) * tf.exp(word_logprobs)
+        # Product over token-level losses calculated in log space
+        zeros = tf.zeros_like(loss)
+        loss = tf.where(loss > zeros, loss, zeros)
+        loss = tf.exp(tf.reduce_sum(loss, axis=0))
+    else:
+        # Negative rewards to make it a loss for using with gradient descent
+        loss = tf.stop_gradient(tf.negative(rewards)) * tf.exp(sent_logprobs)
+
+    # Average over batch
+    batch_loss = tf.reduce_mean(loss)
+    batch_loss = tf.Print(batch_loss, [batch_loss], "batch_loss", 10)
+
+    if reweighing:
+        batch_loss /= tf.stop_gradient(tf.reduce_sum(sent_logprobs))
+
+    return Objective(
+        name="{}_dpm".format(decoder.name),
         decoder=decoder,
         loss=batch_loss,
         gradients=None,
