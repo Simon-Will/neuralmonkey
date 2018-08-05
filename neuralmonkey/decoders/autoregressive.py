@@ -484,7 +484,7 @@ class AutoregressiveDecoder(ModelPart):
             fd[self.train_mask] = weights
 
             if self.feedback:
-                rewards = list(dataset.get_series('reward', allow_none=False))
+                rewards = list(dataset.get_series('reward'))
                 log('Train inputs: {}; length: {}'.format(inputs, len(inputs)))
                 log('Rewards: {}; length: {}'.format(rewards, len(rewards)))
                 if self.feedback == 'token_level':
