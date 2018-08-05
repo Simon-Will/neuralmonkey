@@ -13,7 +13,7 @@ import tensorflow as tf
 from neuralmonkey.dataset import Dataset
 from neuralmonkey.decorators import tensor
 from neuralmonkey.model.model_part import ModelPart, FeedDict, InitializerSpecs
-from neuralmonkey.logging import log, warn
+from neuralmonkey.logging import debug, log, warn
 from neuralmonkey.model.sequence import EmbeddedSequence
 from neuralmonkey.nn.utils import dropout
 from neuralmonkey.tf_utils import get_variable, get_state_shape_invariants
@@ -485,8 +485,9 @@ class AutoregressiveDecoder(ModelPart):
 
             if self.feedback:
                 rewards = list(dataset.get_series('reward'))
-                log('Train inputs: {}; length: {}'.format(inputs, len(inputs)))
-                log('Rewards: {}; length: {}'.format(rewards, len(rewards)))
+                debug('Train inputs: {}; length: {}'
+                      .format(inputs, len(inputs)))
+                debug('Rewards: {}; length: {}'.format(rewards, len(rewards)))
                 if self.feedback == 'token_level':
                     fd[self.train_rewards] = [
                         [float(r) for r in token_rewards]
