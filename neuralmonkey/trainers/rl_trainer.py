@@ -32,6 +32,11 @@ def get_token_level_reward(references, hypotheses):
             float(len(reference) > i and hypothesis[i] == reference[i])
             for i in range(len(hypothesis))
         ]
+        # For the end token, give 1.0 as reward if hypothesis and reference
+        # have equal length.
+        # reward.append(float(len(reference) == len(hypothesis)))
+        # No, always give reward 0.0
+        reward.append(0.0)
         rewards.append(reward)
     return rewards
 
@@ -121,8 +126,8 @@ def rl_objective(decoder: Decoder,
                           hyp=' '.join(hyp_sentences[i]),
                           rew=rewards[i]))
         if token_level:
-            # Pad rewards so that pad_token and end_token have reward 0
-            max_len = max(ref_sentences, key=lambda r: r.shape[0])
+            # Pad rewards so that pad_token has reward 0
+            max_len = max(map(len, rewards))
             #mask = np.stack([
             #    [1] * len(reward_v) + [0] * (max_len - len(reward_v))
             #    for reward_v in rewards
@@ -132,12 +137,17 @@ def rl_objective(decoder: Decoder,
                     reward_v,
                     (0, max_len - len(reward_v)),
                     mode='constant',
-                    constant_values=(0, 0)
+                    constant_values=(0.0, 0.0)
                 )
                 for reward_v in rewards
             ])
             # Transpose so that rewards have shape (time, batch)
             rewards = rewards.transpose()
+            # Sanity check
+            if rewards.shape != hypotheses.shape:
+                warn('Rewards and hypotheses have different shapes: {} and {}\n'
+                     'Full rewards: {}\nFull hypotheses: {}'
+                     .format(rewards.shape, hypotheses.shape, rewards, hypotheses))
             # Put mask into same array as rewards.
             # It will later be unpacked again.
             #rewards = (rewards, mask)
