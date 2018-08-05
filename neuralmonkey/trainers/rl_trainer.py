@@ -276,10 +276,17 @@ def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
     # The minus makes cancels the minus from the cross entropy
     # so the result is + log p(y_i)
     # shape: batch, time
-    word_logprobs = -tf.nn.sparse_softmax_cross_entropy_with_logits(
-        labels=tf.transpose(hypothesis),
-        logits=tf.transpose(decoder.train_logits, perm=[1, 0, 2])
+    word_logprobs = -tf.contrib.seq2seq.sequence_loss(
+        tf.transpose(decoder.train_logits, perm=[1, 0, 2]),
+        tf.transpose(hypothesis),
+        tf.transpose(decoder.train_padding),
+        average_across_timesteps=False,
+        average_across_batch=False
     )
+    #word_logprobs = -tf.nn.sparse_softmax_cross_entropy_with_logits(
+    #    labels=tf.transpose(hypothesis),
+    #    logits=tf.transpose(decoder.train_logits, perm=[1, 0, 2])
+    #)
     word_logprobs = tf.Print(word_logprobs, [word_logprobs], "word_logprobs", 10)
     sent_logprobs = tf.reduce_sum(word_logprobs, axis=0)
     sent_logprobs = tf.Print(sent_logprobs, [sent_logprobs], "sent_logprobs", 10)
