@@ -511,6 +511,9 @@ class AutoregressiveDecoder(ModelPart):
                                             fd[self.train_inputs]))
                     else:
                         fd[self.train_rewards] = [float(r[0]) for r in rewards]
+                except ValueError:
+                    log('ValueError when trying to get reward series.'
+                        ' This is fine for validation.')
                 except KeyError:
                     log('KeyError when trying to get reward series.'
                         ' This is fine for validation.')
