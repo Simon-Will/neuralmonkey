@@ -492,7 +492,7 @@ class AutoregressiveDecoder(ModelPart):
                           .format(rewards, len(rewards)))
                     if self.feedback == 'token_level':
                         max_len = max(map(len, rewards))
-                        fd[self.train_rewards] = np.stack([
+                        padded_rewards = np.stack([
                             np.pad(
                                 [float(r) for r in reward_v],
                                 (0, max_len - len(reward_v)),
@@ -501,8 +501,9 @@ class AutoregressiveDecoder(ModelPart):
                             )
                             for reward_v in rewards
                         ])
+                        fd[self.train_rewards] = padded_rewards.transpose()
                         if fd[self.train_rewards].shape != fd[self.train_inputs].shape:
-                            warn('Rewards shape ({}) does not match inputs shape ({}).\n'
+                            warn('Rewards shape {} does not match inputs shape {}.\n'
                                  'Rewards: {}\nInputs: {}'
                                  .format(fd[self.train_rewards].shape,
                                          fd[self.train_inputs].shape,
