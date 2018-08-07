@@ -520,5 +520,4 @@ class AutoregressiveDecoder(ModelPart):
                         ' This is fine for validation.')
                     fd[self.train_rewards] = np.zeros(inputs.shape)
 
-        log('FD: {}'.format(list(fd.keys())))
         return fd
