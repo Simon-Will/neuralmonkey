@@ -310,7 +310,7 @@ def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
     batch_loss = tf.Print(batch_loss, [batch_loss], "batch_loss", 10)
 
     if reweighing:
-        batch_loss /= tf.stop_gradient(tf.reduce_sum(sent_logprobs))
+        batch_loss /= tf.stop_gradient(tf.reduce_mean(sent_logprobs))
 
     return Objective(
         name="{}_dpm".format(decoder.name),
