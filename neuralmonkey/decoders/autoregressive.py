@@ -514,11 +514,11 @@ class AutoregressiveDecoder(ModelPart):
                 except ValueError:
                     log('ValueError when trying to get reward series.'
                         ' This is fine for validation.')
-                    fd[self.train_rewards] = np.zeros(inputs.shape[0])
+                    fd[self.train_rewards] = np.zeros(inputs.shape)
                 except KeyError:
                     log('KeyError when trying to get reward series.'
                         ' This is fine for validation.')
-                    fd[self.train_rewards] = np.zeros(inputs.shape[0])
+                    fd[self.train_rewards] = np.zeros(inputs.shape)
 
         log('FD: {}'.format(list(fd.keys())))
         return fd
