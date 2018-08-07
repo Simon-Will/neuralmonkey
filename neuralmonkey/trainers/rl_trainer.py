@@ -278,11 +278,11 @@ def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
                 decoder.train_mask, rewards))
     # The minus makes cancels the minus from the cross entropy
     # so the result is + log p(y_i)
-    # shape: batch, time
+    # shape: (batch, time)
     word_logprobs = -tf.contrib.seq2seq.sequence_loss(
-        decoder.train_logits,
-        hypothesis,
-        decoder.train_mask,
+        tf.transpose(decoder.train_logits, perm=[1, 0, 2]),
+        tf.transpose(hypothesis),
+        tf.transpose(decoder.train_mask),
         average_across_timesteps=False,
         average_across_batch=False
     )
@@ -291,24 +291,25 @@ def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
     #    logits=tf.transpose(decoder.train_logits, perm=[1, 0, 2])
     #)
     word_logprobs = tf.Print(word_logprobs, [word_logprobs], "word_logprobs", 10)
-    sent_logprobs = tf.reduce_sum(word_logprobs, axis=0)
+    # Sum over time dimension.
+    sent_logprobs = tf.reduce_sum(word_logprobs, axis=1)
     sent_logprobs = tf.Print(sent_logprobs, [sent_logprobs], "sent_logprobs", 10)
 
     if decoder.feedback == 'token_level':
-        # Transpose from (time, batch) to (batch, time)
+        # Transpose from (time, batch) to (batch, time).
         rewards = tf.transpose(rewards)
 
-        # Negative rewards to make it a loss for using with gradient descent
+        # Negative rewards to make it a loss for using with gradient descent.
         loss = tf.stop_gradient(tf.negative(rewards)) * tf.exp(word_logprobs)
-        # Product over token-level losses calculated in log space
+        # Product over token-level losses calculated in log space.
         zeros = tf.zeros_like(loss)
         loss = tf.where(loss > zeros, loss, zeros)
         loss = tf.exp(tf.reduce_sum(loss, axis=0))
     else:
-        # Negative rewards to make it a loss for using with gradient descent
+        # Negative rewards to make it a loss for using with gradient descent.
         loss = tf.stop_gradient(tf.negative(rewards)) * tf.exp(sent_logprobs)
 
-    # Average over batch
+    # Average over batch.
     batch_loss = tf.reduce_mean(loss)
     batch_loss = tf.Print(batch_loss, [batch_loss], "batch_loss", 10)
 
