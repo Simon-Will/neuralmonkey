@@ -491,7 +491,7 @@ class AutoregressiveDecoder(ModelPart):
                     debug('Rewards: {}; length: {}'
                           .format(rewards, len(rewards)))
                     if self.feedback == 'token_level':
-                        warn('Rewards: {}'.format(rewards))
+                        warn('Reward lengths: {}'.format(map(len, rewards)))
                         max_len = max(map(len, rewards))
                         padded_rewards = np.stack([
                             np.pad(
@@ -503,13 +503,13 @@ class AutoregressiveDecoder(ModelPart):
                             for reward_v in rewards
                         ])
                         fd[self.train_rewards] = padded_rewards.transpose()
-                        if fd[self.train_rewards].shape != fd[self.train_inputs].shape:
-                            warn('Rewards shape {} does not match inputs shape {}.\n'
-                                 'Rewards: {}\nInputs: {}'
-                                 .format(fd[self.train_rewards].shape,
-                                         fd[self.train_inputs].shape,
-                                         fd[self.train_rewards],
-                                         fd[self.train_inputs]))
+                        #if fd[self.train_rewards].shape != fd[self.train_inputs].shape:
+                        warn('Rewards shape {} does not match inputs shape {}.\n'
+                                'Rewards: {}\nInputs: {}'
+                                .format(fd[self.train_rewards].shape,
+                                        fd[self.train_inputs].shape,
+                                        fd[self.train_rewards],
+                                        fd[self.train_inputs]))
                     else:
                         fd[self.train_rewards] = [float(r[0]) for r in rewards]
                 except KeyError:
