@@ -514,10 +514,16 @@ class AutoregressiveDecoder(ModelPart):
                 except ValueError:
                     log('ValueError when trying to get reward series.'
                         ' This is fine for validation.')
-                    fd[self.train_rewards] = np.zeros(inputs.shape)
+                    if self.feedback == 'token_level':
+                        fd[self.train_rewards] = np.zeros(inputs.shape)
+                    else:
+                        fd[self.train_rewards] = np.zeros(inputs.shape[0])
                 except KeyError:
                     log('KeyError when trying to get reward series.'
                         ' This is fine for validation.')
-                    fd[self.train_rewards] = np.zeros(inputs.shape)
+                    if self.feedback == 'token_level':
+                        fd[self.train_rewards] = np.zeros(inputs.shape)
+                    else:
+                        fd[self.train_rewards] = np.zeros(inputs.shape[0])
 
         return fd
