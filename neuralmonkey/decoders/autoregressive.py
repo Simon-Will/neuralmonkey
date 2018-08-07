@@ -518,4 +518,5 @@ class AutoregressiveDecoder(ModelPart):
                     log('KeyError when trying to get reward series.'
                         ' This is fine for validation.')
 
+        log('FD: {}'.format(list(fd.keys())))
         return fd
