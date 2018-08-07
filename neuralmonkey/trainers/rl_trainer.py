@@ -274,7 +274,7 @@ def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
     log('hypothesis: {}\nlogits: {}\nmask: {}\nrewards: {}'
         .format(hypothesis, decoder.train_logits,
                 decoder.train_mask, rewards))
-    # The minus makes cancels the minus from the cross entropy
+    # The minus cancels the minus from the cross entropy
     # so the result is + log p(y_i)
     # shape: (batch, time)
     word_logprobs = -tf.contrib.seq2seq.sequence_loss(
