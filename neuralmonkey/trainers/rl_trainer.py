@@ -273,9 +273,9 @@ def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
     hypothesis = tf.Print(hypothesis, [hypothesis], "hypothesis", 10)
     rewards = tf.Print(rewards, [rewards], "rewards", 10)
 
-    log('Shapes: hypothesis: {}\nlogits: {}\nmask: {}\nrewards'
-        .format(hypothesis.shape, decoder.train_logits.shape,
-                decoder.train_mask.shape, rewards.shape))
+    log('hypothesis: {}\nlogits: {}\nmask: {}\nrewards: {}'
+        .format(hypothesis, decoder.train_logits,
+                decoder.train_mask, rewards))
     # The minus makes cancels the minus from the cross entropy
     # so the result is + log p(y_i)
     # shape: batch, time
@@ -296,7 +296,7 @@ def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
 
     if decoder.feedback == 'token_level':
         # Transpose from (time, batch) to (batch, time)
-        rewards = rewards.transpose()
+        rewards = tf.transpose(rewards)
 
         # Negative rewards to make it a loss for using with gradient descent
         loss = tf.stop_gradient(tf.negative(rewards)) * tf.exp(word_logprobs)
