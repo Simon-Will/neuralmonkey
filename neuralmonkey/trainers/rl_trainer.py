@@ -270,8 +270,6 @@ def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
     # Logged translation and corresponding logged rewards
     hypothesis = decoder.train_inputs  # time, batch
     rewards = decoder.train_rewards  # batch, time
-    hypothesis = tf.Print(hypothesis, [hypothesis], "hypothesis", 10)
-    rewards = tf.Print(rewards, [rewards], "rewards", 10)
 
     log('hypothesis: {}\nlogits: {}\nmask: {}\nrewards: {}'
         .format(hypothesis, decoder.train_logits,
@@ -290,10 +288,8 @@ def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
     #    labels=tf.transpose(hypothesis),
     #    logits=tf.transpose(decoder.train_logits, perm=[1, 0, 2])
     #)
-    word_logprobs = tf.Print(word_logprobs, [word_logprobs], "word_logprobs", 10)
     # Sum over time dimension.
     sent_logprobs = tf.reduce_sum(word_logprobs, axis=1)
-    sent_logprobs = tf.Print(sent_logprobs, [sent_logprobs], "sent_logprobs", 10)
 
     if decoder.feedback == 'token_level':
         # Transpose from (time, batch) to (batch, time).
@@ -311,7 +307,6 @@ def dpm_objective(decoder: Decoder, reweighing: bool = False) -> Objective:
 
     # Average over batch.
     batch_loss = tf.reduce_mean(loss)
-    batch_loss = tf.Print(batch_loss, [batch_loss], "batch_loss", 10)
 
     if reweighing:
         batch_loss /= tf.stop_gradient(tf.reduce_mean(sent_logprobs))
