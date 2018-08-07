@@ -491,7 +491,7 @@ class AutoregressiveDecoder(ModelPart):
                     debug('Rewards: {}; length: {}'
                           .format(rewards, len(rewards)))
                     if self.feedback == 'token_level':
-                        warn('Reward lengths: {}'.format(map(len, rewards)))
+                        warn('Reward lengths: {}'.format([len(r) for r in rewards]))
                         max_len = max(map(len, rewards))
                         padded_rewards = np.stack([
                             np.pad(
