@@ -21,7 +21,7 @@ RewardFunction = Callable[[np.ndarray, np.ndarray], np.ndarray]
 # pylint: enable=invalid-name
 
 
-def get_discriminator_reward(url='http://localhost/'):
+def get_discriminator_reward(url='http://localhost/', log_transform=False):
     def _get_discriminator_reward(source_sentences, hypotheses):
         length = len(source_sentences)
         assert(length == len(hypotheses))
@@ -40,9 +40,10 @@ def get_discriminator_reward(url='http://localhost/'):
                 time.sleep(sleep_time)
                 sleep_time += 1
 
-        received_data = np.array(response.json())
-        debug('Received data {}'.format(received_data))
-        rewards = received_data
+        rewards = np.array(response.json())
+        debug('Received data {}'.format(rewards))
+        if log_transform:
+            rewards = - np.log(np.maximum(1e-5, 1 - received_data))
         debug('Calculated rewards {}'.format(rewards))
         return rewards
     return _get_discriminator_reward
