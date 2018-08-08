@@ -43,7 +43,7 @@ def get_discriminator_reward(url='http://localhost/', log_transform=False):
         rewards = np.array(response.json())
         debug('Received data {}'.format(rewards))
         if log_transform:
-            rewards = - np.log(np.maximum(1e-5, 1 - received_data))
+            rewards = - np.log(np.maximum(1e-5, 1 - rewards))
         debug('Calculated rewards {}'.format(rewards))
         return rewards
     return _get_discriminator_reward
